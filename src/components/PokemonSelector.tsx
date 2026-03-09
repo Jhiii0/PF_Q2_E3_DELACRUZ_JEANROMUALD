@@ -2,6 +2,7 @@ import React from 'react';
 
 interface PokemonSelectorProps {
     onSelect: (pokemonName: string) => void;
+    onHover?: () => void;
 }
 
 const POKEMON_OPTIONS = [
@@ -16,13 +17,17 @@ const POKEMON_OPTIONS = [
     'mewtwo'
 ];
 
-export const PokemonSelector: React.FC<PokemonSelectorProps> = ({ onSelect }) => {
+export const PokemonSelector: React.FC<PokemonSelectorProps> = ({ onSelect, onHover }) => {
     return (
         <div className="pokemon-selector">
             <label htmlFor="pokemon-select">Choose a Pokémon: </label>
             <select
                 id="pokemon-select"
-                onChange={(e) => onSelect(e.target.value)}
+                onFocus={onHover}
+                onChange={(e) => {
+                    onSelect(e.target.value);
+                    if (onHover) onHover();
+                }}
                 defaultValue=""
             >
                 <option value="" disabled>Select a Pokémon</option>

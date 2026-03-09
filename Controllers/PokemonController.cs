@@ -4,6 +4,8 @@ using PF_Q2.Models;
 using PF_Q2.Models.Data;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace PF_Q2.Controllers
 {
@@ -19,26 +21,41 @@ namespace PF_Q2.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Pokemon>>> GetPokemons()
+        public async Task<ActionResult<IEnumerable<PokemonProjectionModel>>> GetPokemons()
         {
-            return await _context.Pokemons.Include(p => p.Trainer).OrderBy(p => p.Id).ToListAsync();
+            var sql = "SELECT Id, Name, Height, Weight, SpriteFrontDefault FROM Pokemons ORDER BY Id";
+            
+            var result = await _context.Database
+                .SqlQueryRaw<PokemonProjectionModel>(sql)
+                .ToListAsync();
+                
+            return Ok(result);
         }
 
         [HttpGet("{idOrName}")]
-        public async Task<ActionResult<Pokemon>> GetPokemon(string idOrName)
+        public async Task<ActionResult<PokemonProjectionModel>> GetPokemon(string idOrName)
         {
-            Pokemon? pokemon;
-            
+            string sql;
+            List<PokemonProjectionModel> result;
+
             // Try to parse the input as an integer ID
             if (int.TryParse(idOrName, out int id))
             {
-                pokemon = await _context.Pokemons.Include(p => p.Trainer).FirstOrDefaultAsync(p => p.Id == id);
+                sql = "SELECT Id, Name, Height, Weight, SpriteFrontDefault FROM Pokemons WHERE Id = {0}";
+                result = await _context.Database
+                    .SqlQuery<PokemonProjectionModel>(FormattableStringFactory.Create(sql, id))
+                    .ToListAsync();
             }
             else
             {
                 // Otherwise search by Name (case-insensitive)
-                pokemon = await _context.Pokemons.Include(p => p.Trainer).FirstOrDefaultAsync(p => p.Name.ToLower() == idOrName.ToLower());
+                sql = "SELECT Id, Name, Height, Weight, SpriteFrontDefault FROM Pokemons WHERE LOWER(Name) = LOWER({0})";
+                result = await _context.Database
+                    .SqlQuery<PokemonProjectionModel>(FormattableStringFactory.Create(sql, idOrName))
+                    .ToListAsync();
             }
+
+            var pokemon = result.FirstOrDefault();
 
             if (pokemon == null)
             {
